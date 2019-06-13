@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const path = require('path');
 const awsS3Client = require('../src/s3Client.js');
 
 
@@ -40,6 +41,7 @@ var commands = {
 var config = {
     command: null,
     sum: 'B',
+    localPath: "./",
     params: {}
 };
 
@@ -224,8 +226,12 @@ function Size(size) {
 
 
 function SaveObject(data) {
-    var filePath = config.params.path.split('/');
-    var fileName = filePath[filePath.length - 1];
-    console.log(fileName);
-    fs.writeFileSync(fileName, data.Body, "binary");
+    let awsPath = path.parse(config.params.path);
+    let localPath = path.join(config.localPath, awsPath.dir);
+
+    if(!fs.existsSync(localPath)) {
+        fs.mkdirSync(localPath, {recursive: true});
+    }
+
+    fs.writeFileSync(path.join(localPath, awsPath.base), data.Body, "binary");
 }
