@@ -1,6 +1,6 @@
 {
   "name": "aws-s3-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A client for working with AWS S3 Buckets.",
   "main": "src/s3Client.js",
   "bin": {

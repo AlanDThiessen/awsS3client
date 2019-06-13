@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 
 const fs = require('fs');
 const awsS3Client = require('../src/s3Client.js');
