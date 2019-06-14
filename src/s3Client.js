@@ -42,27 +42,22 @@ function AWSS3Client() {
 
     /***
      * Download the object specified from the AWS S3 bucket.
-     * @param path [String] The S3 object key.
-     * @param bucket [String] The bucket from which to download.
-     * @param localPath [String] The local starting path for the download.
-     * @param recursive [Boolean] Whether to download recursively
+     * @param opts {Object} - The options for this method
      * @returns {Promise<any>}
      */
-    function Download(path, bucket = null, localPath, recursive) {
+    function Download(opts) {
         let totalSize = 0;
         let awsS3 = this.s3;
 
-        if(bucket === null) {
-            bucket = this.selectedBucket;
-        }
+        opts.bucket = opts.bucket || this.selectedBucket;
 
-        if (recursive) {
-            return this.SearchByKey(path, bucket)
+        if (opts.recursive) {
+            return this.SearchByKey(opts)
                 .then(GatherObjects)
                 .then(RunDownload);
         }
         else {
-            return RunDownload([path]);
+            return RunDownload([opts.path]);
         }
 
 
@@ -84,7 +79,7 @@ function AWSS3Client() {
             function PerformDownload(resolve, reject) {
                 let cntr = 0;
                 let params = {
-                    'Bucket': bucket,
+                    'Bucket': opts.bucket,
                     'Key': objList[cntr]
                 };
 
@@ -95,7 +90,7 @@ function AWSS3Client() {
                         if (err) {
                             reject(err);
                         } else {
-                            SaveObject(params.Key, localPath, obj);
+                            SaveObject(params.Key, opts.localPath, obj);
 
                             if(++cntr < objList.length) {
                                 params.Key = objList[cntr];
@@ -132,19 +127,16 @@ function AWSS3Client() {
 
     /***
      * List the S3 objects at the given path.
-     * @param path [String] The S3 object Prefix to list.
-     * @param bucket [String] The S3 bucket from which to list
+     * @param opts {Object} - The options for this method
      * @returns {Promise<Object>}
      */
-    function ListObjects(path, bucket = null) {
-        if(bucket === null) {
-            bucket = this.selectedBucket;
-        }
+    function ListObjects(opts) {
+        opts.bucket = opts.bucket || this.selectedBucket;
 
         let params = {
-            'Bucket': bucket,
+            'Bucket': opts.bucket,
             'Delimiter': this.s3Settings.delimeter,
-            'Prefix': path
+            'Prefix': opts.path
         };
 
         return ListObjectsV2(this.s3, params);
@@ -153,18 +145,15 @@ function AWSS3Client() {
 
     /***
      * Search the S3 objects matching the given path.
-     * @param path [String] The S3 object Prefix to list.
-     * @param bucket [String] The S3 bucket from which to list
+     * @param opts {Object} - The options for this method
      * @returns {Promise<Object>}
      */
-    function SearchByKey(path, bucket = null) {
-        if(bucket === null) {
-            bucket = this.selectedBucket;
-        }
+    function SearchByKey(opts) {
+        opts.bucket = opts.bucket || this.selectedBucket;
 
         let params = {
-            'Bucket': bucket,
-            'Prefix': path
+            'Bucket': opts.bucket,
+            'Prefix': opts.path
         };
 
         return ListObjectsV2(this.s3, params);

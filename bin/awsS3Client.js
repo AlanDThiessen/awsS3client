@@ -118,12 +118,12 @@ function main() {
     var s3Client = awsS3Client();
 
     let command = commands[config.command];
-    let params = [];
+    let params = {};
     let error = false;
 
     command.params.forEach(param => {
         if(config.params.hasOwnProperty(param)) {
-            params.push(config.params[param]);
+            params[param] = config.params[param];
         }
         else {
             error = true;
@@ -133,7 +133,7 @@ function main() {
 
     if(!error) {
         if (typeof(s3Client[command.s3]) === 'function') {
-            s3Client[command.s3](...params)
+            s3Client[command.s3](params)
                 .then(command.handler, Error);
         }
 
