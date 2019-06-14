@@ -1,5 +1,7 @@
 'use strict';
 
+const nodePath = require('path');
+const nodeFs = require('fs');
 const AWS = require('aws-sdk/index');
 
 
@@ -42,19 +44,71 @@ function AWSS3Client() {
      * Download the object specified from the AWS S3 bucket.
      * @param path [String] The S3 object key.
      * @param bucket [String] The bucket from which to download.
+     * @param localPath [String] The local starting path for the download.
+     * @param recursive [Boolean] Whether to download recursively
      * @returns {Promise<any>}
      */
-    function Download(path, bucket = null) {
+    function Download(path, bucket = null, localPath, recursive) {
+        let totalSize = 0;
+        let awsS3 = this.s3;
+
         if(bucket === null) {
             bucket = this.selectedBucket;
         }
 
-        let params = {
-            'Bucket': bucket,
-            'Key': path
-        };
+        if (recursive) {
+            return this.SearchByKey(path, bucket)
+                .then(GatherObjects)
+                .then(RunDownload);
+        }
+        else {
+            return RunDownload([path]);
+        }
 
-        return RunAws(this.s3, 'getObject', params);
+
+        function GatherObjects(results) {
+            let fileNames = [];
+
+            results.Contents.forEach(obj => {
+                totalSize += obj.Size;
+                fileNames.push(obj.Key);
+            });
+
+            return Promise.resolve(fileNames);
+        }
+
+
+        function RunDownload(objList) {
+            return new Promise(PerformDownload);
+
+            function PerformDownload(resolve, reject) {
+                let cntr = 0;
+                let params = {
+                    'Bucket': bucket,
+                    'Key': objList[cntr]
+                };
+
+                CallS3();
+
+                function CallS3() {
+                    awsS3.getObject(params, (err, obj) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            SaveObject(params.Key, localPath, obj);
+
+                            if(++cntr < objList.length) {
+                                params.Key = objList[cntr];
+                                CallS3();
+                            }
+                            else {
+                                resolve();
+                            }
+                        }
+                    });
+                }
+            }
+        }
     }
 
 
@@ -190,6 +244,18 @@ function RunAws(s3, method, params) {
             reject('Invalid Method');
         }
     }
+}
+
+
+function SaveObject(keyPath, fsPath, data) {
+    let awsPath = nodePath.parse(keyPath);
+    let localPath = nodePath.join(fsPath, awsPath.dir);
+
+    if(!nodeFs.existsSync(localPath)) {
+        nodeFs.mkdirSync(localPath, {recursive: true});
+    }
+
+    nodeFs.writeFileSync(nodePath.join(localPath, awsPath.base), data.Body, "binary");
 }
 
 

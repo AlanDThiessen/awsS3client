@@ -15,7 +15,7 @@ var commands = {
     'download': {
         'handler': SaveObject,
         's3': 'Download',
-        'params': ['path', 'bucket']
+        'params': ['path', 'bucket', 'localPath', 'recursive']
     },
 
     'list': {
@@ -41,8 +41,10 @@ var commands = {
 var config = {
     command: null,
     sum: 'B',
-    localPath: "./",
-    params: {}
+    params: {
+        localPath: "./",
+        recursive: false,
+    }
 };
 
 
@@ -63,6 +65,9 @@ function ProcessArgs() {
         else if(arg === '--sum') {
             cntr++;
             config.sum = GetArg(cntr, "Please specify a correct value for sum.");
+        }
+        else if(arg === '--recursive') {
+            config.params.recursive = true;
         }
         else {
             if(arg.substring(0, 2) === '--') {
@@ -226,12 +231,6 @@ function Size(size) {
 
 
 function SaveObject(data) {
-    let awsPath = path.parse(config.params.path);
-    let localPath = path.join(config.localPath, awsPath.dir);
-
-    if(!fs.existsSync(localPath)) {
-        fs.mkdirSync(localPath, {recursive: true});
-    }
-
-    fs.writeFileSync(path.join(localPath, awsPath.base), data.Body, "binary");
+    console.log("Download complete!");
 }
+
