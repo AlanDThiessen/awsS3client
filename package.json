@@ -13,6 +13,10 @@
     "AWS",
     "S3"
   ],
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/AlanDThiessen/awsS3client/"
+  },
   "author": "Alan Thiessen",
   "license": "MIT",
   "dependencies": {
