@@ -45,7 +45,7 @@ function AWSS3Client() {
      * @param opts {Object} - The options for this method
      * @returns {Promise<any>}
      */
-    function Download(opts) {
+    function Download(opts, statusCallback) {
         let totalSize = 0;
         let awsS3 = this.s3;
 
@@ -57,7 +57,9 @@ function AWSS3Client() {
                 .then(RunDownload);
         }
         else {
-            return RunDownload([opts.path]);
+            return this.ListObjects(opts)
+                .then(GatherObjects)
+                .then(RunDownload);
         }
 
 
@@ -78,18 +80,34 @@ function AWSS3Client() {
 
             function PerformDownload(resolve, reject) {
                 let cntr = 0;
+                let rxSize = 0;
                 let params = {
                     'Bucket': opts.bucket,
                     'Key': objList[cntr]
                 };
 
+                statusCallback({
+                    'type': "download",
+                    'msg': "Downloading " + objList.length + " files",
+                    'rxSize': 0,
+                    'totalSize': totalSize
+                });
+
                 CallS3();
 
                 function CallS3() {
+                    statusCallback({
+                        'type': "download",
+                        'msg': "Downloading '" + params.Key + "'...",
+                        'rxSize': rxSize,
+                        'totalSize': totalSize
+                    });
+
                     awsS3.getObject(params, (err, obj) => {
                         if (err) {
                             reject(err);
                         } else {
+                            rxSize += obj.ContentLength;
                             SaveObject(params.Key, opts.localPath, obj);
 
                             if(++cntr < objList.length) {
@@ -97,6 +115,13 @@ function AWSS3Client() {
                                 CallS3();
                             }
                             else {
+                                statusCallback({
+                                    'type': "download",
+                                    'msg': "Download complete!",
+                                    'rxSize': rxSize,
+                                    'totalSize': totalSize
+                                });
+
                                 resolve();
                             }
                         }

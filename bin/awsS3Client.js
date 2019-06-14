@@ -8,30 +8,35 @@ const awsS3Client = require('../src/s3Client.js');
 var commands = {
     'buckets': {
         'handler': ListBuckets,
+        'statusHandler': StatusCallBack,
         's3': 'ListBuckets',
         'params': []
     },
 
     'download': {
         'handler': SaveObject,
+        'statusHandler': StatusCallBack,
         's3': 'Download',
         'params': ['path', 'bucket', 'localPath', 'recursive']
     },
 
     'list': {
         'handler': ListObjects,
+        'statusHandler': StatusCallBack,
         's3': 'ListObjects',
         'params': ['path', 'bucket']
     },
 
     'search': {
         'handler': ListObjects,
+        'statusHandler': StatusCallBack,
         's3': 'SearchByKey',
         'params': ['path', 'bucket']
     },
 
     'size': {
         'handler': TotalSize,
+        'statusHandler': StatusCallBack,
         's3': 'SearchByKey',
         'params': ['path', 'bucket']
     }
@@ -133,7 +138,7 @@ function main() {
 
     if(!error) {
         if (typeof(s3Client[command.s3]) === 'function') {
-            s3Client[command.s3](params)
+            s3Client[command.s3](params, command.statusHandler)
                 .then(command.handler, Error);
         }
 
@@ -234,3 +239,13 @@ function SaveObject(data) {
     console.log("Download complete!");
 }
 
+
+function StatusCallBack(status) {
+    if(status.type == 'download') {
+        let percent = Math.round(status.rxSize / status.totalSize * 100);
+        console.log(   ('   ' + percent.toString()).substr(-3) + "% ("
+                     + Size(status.rxSize).print + " / "
+                     + Size(status.totalSize).print + ") "
+                     + status.msg);
+    }
+}
